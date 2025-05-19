@@ -8,7 +8,7 @@ export class MedicalSensor {
     private _sensor: Sensor;
     
     constructor(sensorId: string, sensorType: string, sensorValue: number) {
-        this._sensor = new Sensor(sensorId);
+        //this._sensor = new Sensor(sensorId);
         this._sensorId = sensorId;
         this._sensorType = sensorType;
         this._sensorValue = sensorValue;

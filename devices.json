@@ -1,3 +1,13 @@
 {
-    "sex":"yarden"
+    "devices":[
+        {
+            "name":"Power Sensor",
+            "type":"sensor"
+        },
+        {
+            "name":"Stepper",
+            "type":"stepper", 
+            "deviceProperties": {"stepperType":"Driver"}
+        }
+    ]
 }

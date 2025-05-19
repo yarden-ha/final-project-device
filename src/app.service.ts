@@ -5,7 +5,7 @@ import { MedicalBoard } from './arduino/medical_board';
 export class AppService {
   private board = new MedicalBoard()
   
-  getHello(): string {
-    return 'yarden OMO!';
+  getHello()  {
+    return this.board.devices;
   }
 }
