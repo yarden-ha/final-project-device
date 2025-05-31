@@ -1,0 +1,29 @@
+{
+    "devices": [
+
+        {
+            "name": "motor",
+            "type": "stepper",
+            "pins": [
+                9,
+                8,
+                6
+            ],
+            "deviceProps": {}
+        }
+    ],
+    "ignored": [        {
+            "name": "force",
+            "type": "sensor",
+            "pins": [
+                2,
+                3
+            ],
+            "deviceProps": {
+                "sensorType": "force",
+                "unit": "Kg",
+                "range": "0-50",
+                "samplingRate": "80"
+            }
+        }]
+}
