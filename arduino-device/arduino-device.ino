@@ -854,16 +854,15 @@ void sysexCallback(byte command, byte argc, byte *argv)
           float units = scale.get_units(10); // use average and calibrated units
           long value = (long)(units);
 
-          byte sysexPayload[7];
+          byte sysexPayload[6];
+          sysexPayload[0] = (byte)(value >> 0);
+          sysexPayload[1] = (byte)(value >> 8);
+          sysexPayload[2] = (byte)(value >> 16);
+          sysexPayload[3] = (byte)(value >> 24);
+          sysexPayload[4] = (value < 0) ? 0x01 : 0x00; // Sign
+          sysexPayload[5] = 0x02;                      // Subcommand
 
-          sysexPayload[0] = (value >> 0) & 0x7F;
-          sysexPayload[1] = (value >> 7) & 0x7F;
-          sysexPayload[2] = (value >> 14) & 0x7F;
-          sysexPayload[3] = (value >> 21) & 0x7F;
-          sysexPayload[4] = (value >> 28) & 0x7F;
-          sysexPayload[5] = (value < 0) ? 0x01 : 0x00;
-          sysexPayload[6] = 0x02; // subcommand
-          Firmata.sendSysex(HX711_DATA, 7, sysexPayload);
+          Firmata.sendSysex(HX711_DATA, 6, sysexPayload);
         }
       }
       else if (subcommand == 0x03 && isHX711Attached && argc >= 5)

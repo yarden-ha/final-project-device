@@ -30,41 +30,18 @@ export class HX711 {
             console.log("Received HX711 SYSEX:", data);
 
             if (data.find((byteVal) => byteVal === SUBCMD_READ)) {
-                // const b0 = data[0];
-                // const b1 = data[1];
-                // const b2 = data[2];
-                // const b3 = data[3];
-                // const b4 = data[4];
-                // const sign = data[5];
 
+                const unpackByte = (lsb, msb) => (lsb & 0x7F) | ((msb & 0x7F) << 7);
 
-                // let unsigned = (b4 << 28) | (b3 << 21) | (b2 << 14) | (b1 << 7) | b0;
-                // let signed = sign === 0x01 ? -unsigned : unsigned;
+                const b0 = unpackByte(data[0], data[1]);
+                const b1 = unpackByte(data[2], data[3]);
+                const b2 = unpackByte(data[4], data[5]);
+                const b3 = unpackByte(data[6], data[7]);
+                const sign = unpackByte(data[8], data[9]);
+                const subcmd = unpackByte(data[10], data[11]);
 
-                // this._rawValue = signed;
-                // console.log('RAW:', signed);
-                // const b0 = data[0] & 0x7F;
-                // const b1 = data[1] & 0x7F;
-                // const b2 = data[2] & 0x7F;
-                // const b3 = data[3] & 0x7F;
-                // const b4 = data[4] & 0x7F;
-                // const sign = data[5];
-                const b0 = data[0];
-                const b1 = data[1];
-                const b2 = data[2];
-                const b3 = data[3];
-                const b4 = data[4];
-                const sign = data[5];
-                const subcmd = data[6];
-
-                const unsigned =
-                    (b4 << 28) |
-                    (b3 << 21) |
-                    (b2 << 14) |
-                    (b1 << 7) |
-                    b0;
-                // Convert back to signed 32-bit
-                const value = sign === 0x01 ? -unsigned : unsigned;
+                let value = (b3 << 24) | (b2 << 16) | (b1 << 8) | b0;
+                if (sign === 1) value = -value;
                 this._rawValue = value
                 console.log('RAW:' + this._rawValue)
             }

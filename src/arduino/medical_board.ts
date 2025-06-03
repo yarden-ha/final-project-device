@@ -96,7 +96,7 @@ export class MedicalBoard {
             } catch (err) {
                 console.error("Read error:", err);
             }
-        }, 10)
+        }, 1000)
     }
 
     tare(name: string) {
