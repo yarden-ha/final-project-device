@@ -21,8 +21,9 @@ export class AppController {
   }  
 
   @Post('/setscale/:name')
-  setScale(@Param('name') name: string, @Body() body: any) {
-    return this.appService.setScale(name, body);
+  setScale(@Param('name') name: string, @Body() body: {scale:number}) {
+
+    return this.appService.setScale(name, body.scale);
   }
 
   @Get('/motor/:name/:delay')

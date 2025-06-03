@@ -1,6 +1,8 @@
 import { Board, Pin } from "johnny-five";
 const SUBCMD_INIT = 0x01;
 const SUBCMD_READ = 0x02;
+const SUBCMD_SET_SCALE = 0x03;
+const SUBCMD_TARE = 0x04;
 
 
 const HX711_DATA = 0x1C
@@ -20,28 +22,71 @@ export class HX711 {
         this._clockPin = new Pin({ pin: clockPin, board: baord });
         this._dataPin.mode = Pin.INPUT
         this._clockPin.mode = Pin.OUTPUT
-       
+
         this.setGain(gain);
-      
+        this.board.io.sysexCommand([HX711_DATA, SUBCMD_INIT, this._dataPin.pin, this._clockPin.pin]);
+
         this.board.io.sysexResponse(HX711_DATA, (data: number[]) => {
-            if (data.length >= 6) {
-                const b0 = data[1];
-                const b1 = data[2];
-                const b2 = data[3];
-                const b3 = data[4];
-                const b4 = data[5];
+            console.log("Received HX711 SYSEX:", data);
 
-                let unsigned = (b4 << 28) | (b3 << 21) | (b2 << 14) | (b1 << 7) | b0;
-                let signed = (unsigned >> 0);
-                // Convert from unsigned to signed
+            if (data.find((byteVal) => byteVal === SUBCMD_READ)) {
+                // const b0 = data[0];
+                // const b1 = data[1];
+                // const b2 = data[2];
+                // const b3 = data[3];
+                // const b4 = data[4];
+                // const sign = data[5];
 
-                this._rawValue = signed; // Store the raw value
-                console.log('RAW:' + signed)
+
+                // let unsigned = (b4 << 28) | (b3 << 21) | (b2 << 14) | (b1 << 7) | b0;
+                // let signed = sign === 0x01 ? -unsigned : unsigned;
+
+                // this._rawValue = signed;
+                // console.log('RAW:', signed);
+                // const b0 = data[0] & 0x7F;
+                // const b1 = data[1] & 0x7F;
+                // const b2 = data[2] & 0x7F;
+                // const b3 = data[3] & 0x7F;
+                // const b4 = data[4] & 0x7F;
+                // const sign = data[5];
+                const b0 = data[0];
+                const b1 = data[1];
+                const b2 = data[2];
+                const b3 = data[3];
+                const b4 = data[4];
+                const sign = data[5];
+                const subcmd = data[6];
+
+                const unsigned =
+                    (b4 << 28) |
+                    (b3 << 21) |
+                    (b2 << 14) |
+                    (b1 << 7) |
+                    b0;
+                // Convert back to signed 32-bit
+                const value = sign === 0x01 ? -unsigned : unsigned;
+                this._rawValue = value
+                console.log('RAW:' + this._rawValue)
+            }
+            if (data.find((byteVal) => byteVal === SUBCMD_SET_SCALE)) {
+                // const b0 = data[0];
+                // const b1 = data[1];
+                // const b2 = data[2];
+                // const b3 = data[3];
+                // const b4 = data[4];
+                // const sign = data[5];
+
+
+                // let unsigned = (b4 << 28) | (b3 << 21) | (b2 << 14) | (b1 << 7) | b0;
+                // let signed = sign === 0x01 ? -unsigned : unsigned;
+
+                // this._rawValue = signed;
+                // console.log('RAW:', signed);
+                console.log('scaleSet')
             }
         })
         this.tare()
     }
-
     setGain(gain: number): void {
         this._gain = gain;
         switch (gain) {
@@ -63,19 +108,26 @@ export class HX711 {
 
         await this.waitForReady();
         console.log("Taring HX711...");
-        
+        this.setScale(2000)
+        this.board.io.sysexCommand([HX711_DATA, SUBCMD_TARE, this._dataPin.pin, this._clockPin.pin]);
         // this._offset = this._rawValue; // Store the current raw value as offset
-        this.board.io.sysexCommand([HX711_DATA, SUBCMD_INIT, this._dataPin.pin, this._clockPin.pin]);
     }
 
     setScale(scale: number): void {
-        this._scale = scale / 11.3;
+        const floatArray = new Float32Array([scale]);
+        const byteArray = new Uint8Array(floatArray.buffer);
+        this.board.io.sysexCommand([
+            HX711_DATA, SUBCMD_SET_SCALE, // subcommand
+            byteArray[0], byteArray[1], byteArray[2], byteArray[3],
+            this._dataPin, this._clockPin // optional, if needed by your protocol
+        ]);
+
         console.log(`Scale set to: ${this._scale}`);
     }
     calibrate(rawValue) {
         // this.setScale
         console.log(`Raw value: ${rawValue}`);
-        let calibratedVal =  (rawValue - this._offset) / this._scale;
+        let calibratedVal = (rawValue - this._offset) / this._scale;
         console.log(`Calibrated value: ${calibratedVal}`);
         return calibratedVal;
     }
@@ -83,7 +135,7 @@ export class HX711 {
         console.log("Reading weight...");
         this.board.io.sysexCommand([HX711_DATA, SUBCMD_READ, this._dataPin.pin, this._clockPin.pin]);
         return new Promise((resolve, reject) => {
-            resolve(this.calibrate(this._rawValue));
+            resolve(this._rawValue);
         });
     }
     waitForReady(): Promise<void> {
