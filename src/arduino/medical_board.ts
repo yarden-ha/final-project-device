@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises'
 import { MedicalDriver } from "./devices/medical_driver";
 import { MedicalSensor } from "./devices/medical_sensor";
 import { HX711 } from "./devices/hx711";
+import EventEmitter from "events";
 
 export type MedicalDevice = {}
 type DeviceType = 'stepper' | 'sensor'
@@ -16,11 +17,12 @@ type MedicalDeviceType = {
     }
 }
 
-export class MedicalBoard {
+export class MedicalBoard extends EventEmitter{
     private board: Board;
     private boardDevices: Map<string, MedicalDevice> = new Map();
 
     constructor() {
+        super();
         this.board = new Board()
         this.board.on("ready", this.onReady.bind(this))
     }
@@ -92,7 +94,9 @@ export class MedicalBoard {
         setInterval(async () => {
             try {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
-                console.log("Weight:", weight);
+                const rounded = Math.floor(weight).toFixed(2)
+                console.log("Weight:",rounded );
+                this.emit(`${name}-data`,rounded)
             } catch (err) {
                 console.error("Read error:", err);
             }
@@ -122,13 +126,13 @@ export class MedicalBoard {
         console.log(`Set scale for sensor: ${name} to ${scale}`);
 
     }
-    testMotor(name: string,delay:number) {
+    testMotor(name: string, delay: number) {
         let medicalDriver = this.boardDevices.get(name) as MedicalDriver
         if (medicalDriver) {
 
-         return   medicalDriver.moveToPosition(delay)
+            return medicalDriver.moveToPosition(delay)
 
         }
-        else return {status:404}
+        else return { status: 404 }
     }
 }

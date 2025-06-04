@@ -25,16 +25,19 @@ export class MedicalSensor implements MedicalDevice {
         return this._sensorType;
     }
 
-    async sensorValue() {
+    async sensorValue() : Promise<number> {
         if (this._sensor instanceof HX711) {
-            return await (this._sensor as HX711).getWeight();
+            return  (this._sensor as HX711).getWeight();
         }
         else if (this._sensor instanceof Sensor) {
-             new Promise((resolve) => {
+            return  new Promise((resolve) => {
                (this._sensor as Sensor).on("data", (value: number) => {
                     resolve(value);
                 });
             });
+        }else{
+               return  new Promise((resolve,reject) => {reject()})
+               
         }
     }
     tare() {

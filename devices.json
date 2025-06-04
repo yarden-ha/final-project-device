@@ -6,8 +6,8 @@
             "name": "force",
             "type": "sensor",
             "pins": [
-                2,
-                3
+                3,
+                2
             ],
             "deviceProps": {
                 "sensorType": "force",

@@ -842,6 +842,7 @@ void sysexCallback(byte command, byte argc, byte *argv)
         hx711DataPin = argv[1];
         hx711ClockPin = argv[2];
         scale.begin(hx711DataPin, hx711ClockPin);
+        scale.set_gain(64);
         scale.set_scale();
         scale.tare();
         isHX711Attached = true;
@@ -850,17 +851,23 @@ void sysexCallback(byte command, byte argc, byte *argv)
       { // READ
         if (scale.is_ready())
         {
+          // static float smoothed = 0;       // Holds the smoothed value
+          // float alpha = 0.1;               // Smoothing factor (lower = more smoothing)
+          // float current = scale.get_units(10); // Average 10 readings
+          // smoothed = alpha * current + (1 - alpha) * smoothed;
+          // long value = (long)smoothed;
+
 
           float units = scale.get_units(10); // use average and calibrated units
           long value = (long)(units);
-
           byte sysexPayload[6];
-          sysexPayload[0] = (byte)(value >> 0);
-          sysexPayload[1] = (byte)(value >> 8);
-          sysexPayload[2] = (byte)(value >> 16);
-          sysexPayload[3] = (byte)(value >> 24);
-          sysexPayload[4] = (value < 0) ? 0x01 : 0x00; // Sign
-          sysexPayload[5] = 0x02;                      // Subcommand
+          sysexPayload[0] = 0x02; 
+          sysexPayload[1] = (byte)(value >> 0);
+          sysexPayload[2] = (byte)(value >> 8);
+          sysexPayload[3] = (byte)(value >> 16);
+          sysexPayload[4] = (byte)(value >> 24);
+          sysexPayload[5] = (value < 0) ? 0x01 : 0x00; // Sign
+                          // Subcommand
 
           Firmata.sendSysex(HX711_DATA, 6, sysexPayload);
         }
@@ -868,19 +875,19 @@ void sysexCallback(byte command, byte argc, byte *argv)
       else if (subcommand == 0x03 && isHX711Attached && argc >= 5)
       {
         // setscale
-        union
-        {
-          byte b[4];
-          float f;
-        } u;
-        u.b[0] = argv[1];
-        u.b[1] = argv[2];
-        u.b[2] = argv[3];
-        u.b[3] = argv[4];
-        scale.set_scale(u.f);
-        byte sysexPayload[1];
-        sysexPayload[0] = 0x03; // subcommand for tare
-        Firmata.sendSysex(HX711_DATA, 1, sysexPayload);
+        // union
+        // {
+        //   byte b[4];
+        //   float f;
+        // } u;
+        // u.b[0] = argv[1];
+        // u.b[1] = argv[2];
+        // u.b[2] = argv[3];
+        // u.b[3] = argv[4];
+        // scale.set_scale(u.f);
+        // byte sysexPayload[1];
+        // sysexPayload[0] = 0x03; // subcommand for tare
+        // Firmata.sendSysex(HX711_DATA, 1, sysexPayload);
       }
       else if (subcommand == 0x04 && isHX711Attached)
       {
