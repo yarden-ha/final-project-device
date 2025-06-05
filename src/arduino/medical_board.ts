@@ -90,12 +90,11 @@ export class MedicalBoard extends EventEmitter {
             try {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
                 const rounded = Math.floor(weight).toFixed(2)
-                console.log("Weight:", rounded);
                 this.emit(`${name}-data`, rounded)
             } catch (err) {
                 console.error("Read error:", err);
             }
-        }, 1000)
+        }, 10)
     }
 
     tare(name: string) {
@@ -104,7 +103,7 @@ export class MedicalBoard extends EventEmitter {
         }
         const sensor = this.boardDevices.get(name) as MedicalSensor;
         if (sensor instanceof MedicalSensor) {
-            sensor.tare();
+            sensor.tare(40);
             console.log(`Tared sensor: ${name}`);
         } else {
             console.error(`Sensor ${name} is not a HX711 sensor`);
@@ -121,11 +120,11 @@ export class MedicalBoard extends EventEmitter {
         console.log(`Set scale for sensor: ${name} to ${scale}`);
 
     }
-    testMotor(name: string, delay: number) {
+    testMotor(name: string, spins: number) {
         let medicalDriver = this.boardDevices.get(name) as MedicalDriver
         if (medicalDriver) {
 
-            return medicalDriver.moveToPosition(delay)
+            return medicalDriver.sendMoveCommand(spins)
 
         }
         else return { status: 404 }

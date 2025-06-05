@@ -26,7 +26,7 @@ export class AppService {
     return { status: 200 }
   }
   mooove(name: string, d) {
-    // return this.board.testMotor(name, d)
+    return this.board.testMotor(name, d)
   }
 
 

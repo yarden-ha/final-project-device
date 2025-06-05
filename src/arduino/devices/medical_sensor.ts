@@ -40,9 +40,9 @@ export class MedicalSensor implements MedicalDevice {
                
         }
     }
-    tare() {
+    tare(val) {
         if (this._sensor instanceof HX711) {
-            return (this._sensor as HX711).tare();
+            return (this._sensor as HX711).tare(val);
         } else {
             throw new Error("Tare is only available for HX711 sensors.");
         }

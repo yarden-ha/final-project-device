@@ -15,9 +15,8 @@
                 "range": "0-50",
                 "samplingRate": "80"
             }
-        }
-    ],
-    "ignored": [   {
+        },
+         {
             "name": "motor",
             "type": "stepper",
             "pins": [
@@ -26,5 +25,7 @@
                 6
             ],
             "deviceProps": {}
-        }     ]
+        }  
+    ],
+    "ignored": [     ]
 }

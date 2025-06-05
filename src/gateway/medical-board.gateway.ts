@@ -18,7 +18,6 @@ export class MedicalBoardGateway {
   }
 
   emitSensorData(sensorName: string, value: number) {
-    console.log('sensor-data', { sensor: sensorName, value });
     
     this.server.emit('sensor-data', { sensor: sensorName, value });
   }

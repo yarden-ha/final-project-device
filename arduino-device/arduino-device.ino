@@ -32,6 +32,7 @@
 #include <LiquidCrystal.h>
 
 #define HX711_DATA B00011100
+#define MOTOR_DATA B00011110
 #define I2C_WRITE B00000000
 #define I2C_READ B00001000
 #define I2C_READ_CONTINUOUSLY B00010000
@@ -58,6 +59,11 @@ byte hx711ClockPin = 0;
 
 // LiquidCrystal  lcd(12, 10, 5, 4, 3, 2);
 
+byte motorStepPin = 0;
+byte motorDirPin = 0;
+byte motorFltPin = 0;
+int motorDelay = 250;
+bool isMotorAttached = false;
 /*==============================================================================
  * END CUSTOM STUFF FOR PROJECT - DEFENITIONS
  *============================================================================*/
@@ -571,6 +577,17 @@ void reportDigitalCallback(byte port, int value)
   // pins configured as analog
 }
 
+void spinMotor(int spins)
+{
+  for (size_t i = 0; i < spins; i++)
+  {
+    digitalWrite(motorStepPin, HIGH);
+    delayMicroseconds(motorDelay); // 1ms HIGH pulse
+    digitalWrite(motorStepPin, LOW);
+    delayMicroseconds(motorDelay);
+  }
+}
+
 /*==============================================================================
  * SYSEX-BASED commands
  *============================================================================*/
@@ -857,17 +874,17 @@ void sysexCallback(byte command, byte argc, byte *argv)
           // smoothed = alpha * current + (1 - alpha) * smoothed;
           // long value = (long)smoothed;
 
-
-          float units = scale.get_units(10); // use average and calibrated units
-          long value = (long)(units);
+          // float units = scale.get_units(10); // use average and calibrated units
+          // long value = (long)(units);
+          long value = scale.read();
           byte sysexPayload[6];
-          sysexPayload[0] = 0x02; 
+          sysexPayload[0] = 0x02;
           sysexPayload[1] = (byte)(value >> 0);
           sysexPayload[2] = (byte)(value >> 8);
           sysexPayload[3] = (byte)(value >> 16);
           sysexPayload[4] = (byte)(value >> 24);
           sysexPayload[5] = (value < 0) ? 0x01 : 0x00; // Sign
-                          // Subcommand
+                                                       // Subcommand
 
           Firmata.sendSysex(HX711_DATA, 6, sysexPayload);
         }
@@ -899,8 +916,34 @@ void sysexCallback(byte command, byte argc, byte *argv)
       }
     }
     break;
+  /*==============================================================================
+   *END CUSTOM STUFF FOR PROJECT - HX711 HANDLING
+   *============================================================================*/
+  /*==============================================================================
+   * CUSTOM STUFF FOR PROJECT - MOTOR HANDLING
+   *============================================================================*/
+  case MOTOR_DATA:
+    if (argc >= 1)
+    {
+      byte subcommand = argv[0];
+      if (subcommand == 0x01 && argc >= 4)
+      { // INIT
+        motorStepPin = argv[1];
+        motorDirPin = argv[2];
+        motorFltPin = argv[3];
+        digitalWrite(motorStepPin,LOW);
+        isMotorAttached = true;
+      }
+      else if (subcommand == 0x02 && argc >= 3)
+      {
+        int spins = (argv[1] << 8) | argv[2];
+        // motorDelay = (argv[3] << 8) | argv[4];
+        spinMotor(spins);
+      }
+    }
+    break;
     /*==============================================================================
-     *END CUSTOM STUFF FOR PROJECT - HX711 HANDLING
+     * END CUSTOM STUFF FOR PROJECT - MOTOR HANDLING
      *============================================================================*/
   case SERIAL_MESSAGE:
 #ifdef FIRMATA_SERIAL_FEATURE
