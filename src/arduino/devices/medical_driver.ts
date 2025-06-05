@@ -12,7 +12,6 @@ export class MedicalDriver implements MedicalDevice {
     private board: Board;
  
     constructor(pins: { step: number, dir: number, fault: number }, stepsPerRev: number = 200, board: Board) {
-        console.log(pins)
         this.step = new Pin(pins.step)
         this.dir = new Pin(pins.dir)
         this.fault = new Pin(pins.fault)

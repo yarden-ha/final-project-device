@@ -4,10 +4,10 @@ import { MedicalBoardGateway } from './gateway/medical-board.gateway';
 
 @Injectable()
 export class AppService {
-  private board = new MedicalBoard()
+  private board
   constructor(private gateway: MedicalBoardGateway) {
-  } // <-- inject
-
+    this.board = new MedicalBoard()
+  }
 
   tare(name: string) {
     return this.board.tare(name);
@@ -23,10 +23,10 @@ export class AppService {
     this.board.on(`${name}-data`, (data) => {
       this.gateway.emitSensorData(name, data)
     })
-    return ""
+    return { status: 200 }
   }
   mooove(name: string, d) {
-    return this.board.testMotor(name, d)
+    // return this.board.testMotor(name, d)
   }
 
 

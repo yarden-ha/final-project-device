@@ -17,8 +17,9 @@ export class MedicalBoardGateway {
     this.server.emit('pong', { msg: 'pong', data });
   }
 
-  // Example: emit sensor data to all clients
   emitSensorData(sensorName: string, value: number) {
+    console.log('sensor-data', { sensor: sensorName, value });
+    
     this.server.emit('sensor-data', { sensor: sensorName, value });
   }
 }

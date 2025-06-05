@@ -18,7 +18,7 @@ export class HX711 {
     private _offset = 0;            // Used for taring (zero offset)
     private _scale = 44.56;         // Used to convert raw reading to meaningful units (e.g. grams or Newtons)
     private board: Board;
-    private readInterval;
+    private readInterval:NodeJS.Timeout;
     private readSpeed = 100;
 
     constructor(dataPin: number, clockPin: number, gain: number = 128, baord: Board) {
@@ -67,13 +67,13 @@ export class HX711 {
     }
     calibrate(rawValue) {
         // this.setScale
-        console.log(`Raw value: ${rawValue}`);
+        // console.log(`Raw value: ${rawValue}`);
         let calibratedVal = (rawValue - this._offset) / this._scale;
-        console.log(`Calibrated value: ${calibratedVal}`);
+        // console.log(`Calibrated value: ${calibratedVal}`);
         return calibratedVal;
     }
     getWeight(): Promise<number> {
-        console.log("Reading weight...");
+        // console.log("Reading weight...");
         return new Promise((resolve, reject) => {
             resolve(this.calibrate(this._rawValue));
         });

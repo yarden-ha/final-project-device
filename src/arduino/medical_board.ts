@@ -1,9 +1,8 @@
+import { EventEmitter } from "events";
 import { Board, Led } from "johnny-five"
 import { readFile } from 'fs/promises'
 import { MedicalDriver } from "./devices/medical_driver";
 import { MedicalSensor } from "./devices/medical_sensor";
-import { HX711 } from "./devices/hx711";
-import EventEmitter from "events";
 
 export type MedicalDevice = {}
 type DeviceType = 'stepper' | 'sensor'
@@ -17,7 +16,7 @@ type MedicalDeviceType = {
     }
 }
 
-export class MedicalBoard extends EventEmitter{
+export class MedicalBoard extends EventEmitter {
     private board: Board;
     private boardDevices: Map<string, MedicalDevice> = new Map();
 
@@ -80,11 +79,7 @@ export class MedicalBoard extends EventEmitter{
         // do here anything once the board is ready
         console.log("Creating devices...")
         this.createDevices()
-        setTimeout(() => {
-
-            this.readSensor('force')
-
-        }, 5000)
+     
     }
 
     public readSensor(name: string) {
@@ -95,8 +90,8 @@ export class MedicalBoard extends EventEmitter{
             try {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
                 const rounded = Math.floor(weight).toFixed(2)
-                console.log("Weight:",rounded );
-                this.emit(`${name}-data`,rounded)
+                console.log("Weight:", rounded);
+                this.emit(`${name}-data`, rounded)
             } catch (err) {
                 console.error("Read error:", err);
             }

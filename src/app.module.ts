@@ -6,6 +6,6 @@ import { MedicalBoardGateway } from './gateway/medical-board.gateway';
 @Module({
   imports: [],
   controllers: [AppController],
-  providers: [AppService,MedicalBoardGateway],
+  providers: [AppService, MedicalBoardGateway],
 })
-export class AppModule {}
+export class AppModule { }

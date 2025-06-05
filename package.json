@@ -27,6 +27,7 @@
     "@nestjs/platform-socket.io": "^11.1.2",
     "@nestjs/websockets": "^11.1.2",
     "@types/johnny-five": "^2.1.11",
+    "events": "^3.3.0",
     "johnny-five": "^2.1.0",
     "node-gyp": "^11.2.0",
     "reflect-metadata": "^0.2.2",
