@@ -1,5 +1,5 @@
 import { Board, Pin } from "johnny-five"
-import { MedicalDevice } from "../medical_board"
+import { MedicalDevice, unpackByte } from "../medical_board"
 
 enum DIRECTION {
     CLOCK_WISE = 1,
@@ -9,7 +9,9 @@ enum DIRECTION {
 const MOTOR_DATA = 0x1E
 const SUBCMD_INIT = 0x01;
 const MOVE_INIT = 0x02;
-
+function encodeTo7BitArray(value) {
+    return [value & 0x7F, (value >> 7) & 0x7F];
+}
 export class MedicalDriver implements MedicalDevice {
     private step: Pin
     private dir: Pin
@@ -24,53 +26,45 @@ export class MedicalDriver implements MedicalDevice {
         this.board = board
 
         this.board.io.sysexCommand([MOTOR_DATA, SUBCMD_INIT, this.step.pin, this.dir.pin, this.fault.pin]);
-
+        this.board.io.sysexResponse(MOTOR_DATA, (data: number[]) => {
+            const subcmd = data[0]; // First byte is the subcommand
+            if (subcmd === MOVE_INIT) {
+                // Arduino sends back in the order delay, spins
+          const spins = (data[1] << 8) | data[2];
+            const delay = (data[3] << 8) | data[4];
+                console.log(data);
+                console.log(`Received from Arduino - Delay: ${delay}, Spins: ${spins}`);
+            }
+        })
 
         this.dir.write(DIRECTION.CLOCK_WISE);
 
         this.fault.on("data", (value) => {
             console.log(value)
         })
+        
     }
 
-    sendMoveCommand(spins, delay = 51) {
-        this.board.io.sysexCommand([MOTOR_DATA, MOVE_INIT, spins, delay]);
-    }
+    sendMoveCommand(spins: number, delay: number) {
+        spins = Math.min(spins, 0xFFFF);
+        delay = Math.min(delay, 0xFFFF);
 
-    pulseStepPin(currentStep = 0, steps = 1000, delay = 1) {
-        if (currentStep >= steps) {
-            this.step.high()
-            console.log("Done stepping.");
-            return;
-        }
-        // this.step.write(1)
-        // // Pulse: HIGH then LOW
-        // // this.step.high();
-        // this.board.wait(delay, () => { // 1 ms HIGH
-        //     // this.step.low();
-        // this.step.write(0)
+        const spinsHigh = (spins >> 8) & 0xFF;
+        const spinsLow = spins & 0xFF;
+        const delayHigh = (delay >> 8) & 0xFF;
+        const delayLow = delay & 0xFF;
 
-        //     this.board.wait(1, () => { // 1 ms LOW
-        //         currentStep++;
-        //         this.pulseStepPin(currentStep);
-        //     });
-        // });
-        for (currentStep; currentStep < steps; currentStep++) {
-            this.step.write(1)
-            let timeout = setTimeout(() => {
-                //  this.step.write(0)
-                clearTimeout(timeout)
-            }, delay)
-        }
-        this.step.high()
-        console.log('DONE')
-    }
+        console.log(`Sending command to Arduino - Spins: ${spins}, Delay: ${delay}`);
+        console.log([MOVE_INIT, spinsHigh, spinsLow, delayHigh, delayLow]);
 
-    public async moveToPosition(position: number): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.pulseStepPin(0, 200, position)
-            resolve()
-        })
+        this.board.io.sysexCommand([
+            MOTOR_DATA,
+            MOVE_INIT,
+            spinsHigh, spinsLow,
+            delayHigh, delayLow
+        ]);
     }
+ 
+
 }
 

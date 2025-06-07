@@ -931,13 +931,26 @@ void sysexCallback(byte command, byte argc, byte *argv)
         motorStepPin = argv[1];
         motorDirPin = argv[2];
         motorFltPin = argv[3];
-        digitalWrite(motorStepPin,LOW);
+        digitalWrite(motorStepPin, LOW);
         isMotorAttached = true;
       }
-      else if (subcommand == 0x02 && argc >= 3)
+      else if (subcommand == 0x02)
       {
-        int spins = (argv[1] << 8) | argv[2];
-        // motorDelay = (argv[3] << 8) | argv[4];
+        int spins =         (argv[1] << 8) | argv[2]; // High, Low
+        int receivedDelay = (argv[3] << 8) | argv[4];
+
+        motorDelay = receivedDelay;
+
+        // Properly encode the values into 7-bit bytes for sending back
+        byte response[5];
+        response[0] = 0x02;                        // subcommand
+        response[1] = spins & 0x7F;                // low 7 bits
+        response[2] = (spins >> 8) & 0x7F;         // high 7 bits
+        response[3] = receivedDelay & 0x7F;        // low 7 bits
+        response[4] = (receivedDelay >> 8) & 0x7F; // high 7 bits
+
+        Firmata.sendSysex(MOTOR_DATA, 5, response);
+
         spinMotor(spins);
       }
     }

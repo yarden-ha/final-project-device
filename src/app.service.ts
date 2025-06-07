@@ -25,8 +25,8 @@ export class AppService {
     })
     return { status: 200 }
   }
-  mooove(name: string, d) {
-    return this.board.testMotor(name, d)
+  mooove(name: string, spins: number,delay: number = 250) {
+    return this.board.testMotor(name, spins,delay)
   }
 
 

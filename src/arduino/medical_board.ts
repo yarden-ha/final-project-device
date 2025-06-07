@@ -16,6 +16,9 @@ type MedicalDeviceType = {
     }
 }
 
+export const unpackByte = (lsb, msb) => (lsb & 0x7F) | ((msb & 0x7F) << 7);
+
+
 export class MedicalBoard extends EventEmitter {
     private board: Board;
     private boardDevices: Map<string, MedicalDevice> = new Map();
@@ -90,6 +93,12 @@ export class MedicalBoard extends EventEmitter {
             try {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
                 const rounded = Math.floor(weight).toFixed(2)
+
+                if(weight>500){
+                    
+                    this.testMotor('motor', 10000, 250 - Math.floor(weight / 1000) * 50)
+                }
+
                 this.emit(`${name}-data`, rounded)
             } catch (err) {
                 console.error("Read error:", err);
@@ -120,12 +129,12 @@ export class MedicalBoard extends EventEmitter {
         console.log(`Set scale for sensor: ${name} to ${scale}`);
 
     }
-    testMotor(name: string, spins: number) {
+    testMotor(name: string, spins: number, delay: number) {
+        console.log(`Testing motor: ${name} with spins: ${spins} and delay: ${delay}`);
+        
         let medicalDriver = this.boardDevices.get(name) as MedicalDriver
         if (medicalDriver) {
-
-            return medicalDriver.sendMoveCommand(spins)
-
+            return medicalDriver.sendMoveCommand(spins, delay);
         }
         else return { status: 404 }
     }

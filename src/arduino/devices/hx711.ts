@@ -1,4 +1,5 @@
 import { Board, Pin } from "johnny-five";
+import { unpackByte } from "../medical_board";
 const SUBCMD_INIT = 0x01;
 const SUBCMD_READ = 0x02;
 const SUBCMD_SET_SCALE = 0x03;
@@ -8,7 +9,6 @@ const SUBCMD_TARE = 0x04;
 // const Scale set to: 44.579103006407095
 // const Set scale for sensor: force to 2029
 const HX711_DATA = 0x1C
-const unpackByte = (lsb, msb) => (lsb & 0x7F) | ((msb & 0x7F) << 7);
 
 export class HX711 {
     private _dataPin: Pin;
