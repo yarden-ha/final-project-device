@@ -56,7 +56,7 @@ HX711 scale;
 bool isHX711Attached = false;
 byte hx711DataPin = 0;
 byte hx711ClockPin = 0;
-
+long hx711Value = 0;
 // LiquidCrystal  lcd(12, 10, 5, 4, 3, 2);
 
 byte motorStepPin = 0;
@@ -64,6 +64,7 @@ byte motorDirPin = 0;
 byte motorFltPin = 0;
 int motorDelay = 250;
 bool isMotorAttached = false;
+bool isMotorRunning = false;
 /*==============================================================================
  * END CUSTOM STUFF FOR PROJECT - DEFENITIONS
  *============================================================================*/
@@ -577,15 +578,12 @@ void reportDigitalCallback(byte port, int value)
   // pins configured as analog
 }
 
-void spinMotor(int spins)
+void spinMotor()
 {
-  for (size_t i = 0; i < spins; i++)
-  {
-    digitalWrite(motorStepPin, HIGH);
-    delayMicroseconds(motorDelay); // 1ms HIGH pulse
-    digitalWrite(motorStepPin, LOW);
-    delayMicroseconds(motorDelay);
-  }
+  digitalWrite(motorStepPin, HIGH);
+  delayMicroseconds(motorDelay); // 1ms HIGH pulse
+  digitalWrite(motorStepPin, LOW);
+  delayMicroseconds(motorDelay);
 }
 
 /*==============================================================================
@@ -868,15 +866,7 @@ void sysexCallback(byte command, byte argc, byte *argv)
       { // READ
         if (scale.is_ready())
         {
-          // static float smoothed = 0;       // Holds the smoothed value
-          // float alpha = 0.1;               // Smoothing factor (lower = more smoothing)
-          // float current = scale.get_units(10); // Average 10 readings
-          // smoothed = alpha * current + (1 - alpha) * smoothed;
-          // long value = (long)smoothed;
-
-          // float units = scale.get_units(10); // use average and calibrated units
-          // long value = (long)(units);
-          long value = scale.read();
+          long value = hx711Value;
           byte sysexPayload[6];
           sysexPayload[0] = 0x02;
           sysexPayload[1] = (byte)(value >> 0);
@@ -884,8 +874,6 @@ void sysexCallback(byte command, byte argc, byte *argv)
           sysexPayload[3] = (byte)(value >> 16);
           sysexPayload[4] = (byte)(value >> 24);
           sysexPayload[5] = (value < 0) ? 0x01 : 0x00; // Sign
-                                                       // Subcommand
-
           Firmata.sendSysex(HX711_DATA, 6, sysexPayload);
         }
       }
@@ -940,7 +928,7 @@ void sysexCallback(byte command, byte argc, byte *argv)
         int receivedDelay = (argv[3] << 8) | argv[4];
 
         motorDelay = receivedDelay;
-
+        isMotorRunning = true;
         // Properly encode the values into 7-bit bytes for sending back
         byte response[5];
         response[0] = 0x02;                        // subcommand
@@ -950,8 +938,12 @@ void sysexCallback(byte command, byte argc, byte *argv)
         response[4] = (receivedDelay >> 8) & 0x7F; // high 7 bits
 
         Firmata.sendSysex(MOTOR_DATA, 5, response);
+      }
+      else if (subcommand == 0x03)
+      {
 
-        spinMotor(spins);
+        isMotorRunning = false;
+        // Properly encode the values into 7-bit bytes for sending back
       }
     }
     break;
@@ -1031,11 +1023,11 @@ void systemResetCallback()
 void setup()
 {
   /*==============================================================================
-   * CUSTOM STUFF FOR PROJECT - LCD DEFENITION
+   * CUSTOM STUFF FOR PROJECT 
    *============================================================================*/
 
   /*==============================================================================
-   * END CUSTOM STUFF FOR PROJECT - LCD DEFENITION
+   * END CUSTOM STUFF FOR PROJECT 
    *============================================================================*/
 
   Firmata.setFirmwareVersion(FIRMATA_FIRMWARE_MAJOR_VERSION, FIRMATA_FIRMWARE_MINOR_VERSION);
@@ -1069,8 +1061,30 @@ void setup()
  * LOOP()
  *============================================================================*/
 void loop()
-{
+{   
   byte pin, analogPin;
+
+  /*==============================================================================
+   * CUSTOM STUFF FOR PROJECT 
+   *============================================================================*/
+  if(isHX711Attached){
+    if(scale.is_ready()){
+      hx711Value = scale.read(); // get average of 10 readings
+      // send the value to the host
+      // Firmata.sendSysex(HX711_DATA, 5, (byte *)&hx711Value);
+    }
+  }
+   if(isMotorAttached){
+      if(isMotorRunning){
+        spinMotor();
+      }
+    } 
+  /*==============================================================================
+   * END CUSTOM STUFF FOR PROJECT 
+   *============================================================================*/
+
+
+
 
   /* DIGITALREAD - as fast as possible, check for changes and output them to the
    * FTDI buffer using Serial.print()  */
