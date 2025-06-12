@@ -22,9 +22,9 @@ export class AppController {
   }
 
   @Post('/motor/:name/move')
-  moveMotor(@Param('name') name: string,@Body() body: { spins: number,delay?: number }) {
-    const { spins, delay = 50 } = body;
-    return this.appService.mooove(name, spins,delay);
+  moveMotor(@Param('name') name: string,@Body() body: { delay?: number }) {
+    const { delay = 50 } = body;
+    return this.appService.mooove(name, delay);
   }
 
 }

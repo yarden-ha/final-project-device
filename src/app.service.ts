@@ -4,7 +4,7 @@ import { MedicalBoardGateway } from './gateway/medical-board.gateway';
 
 @Injectable()
 export class AppService {
-  private board
+  private board: MedicalBoard;
   constructor(private gateway: MedicalBoardGateway) {
     this.board = new MedicalBoard()
   }
@@ -25,8 +25,8 @@ export class AppService {
     })
     return { status: 200 }
   }
-  mooove(name: string, spins: number,delay: number = 250) {
-    return this.board.testMotor(name, spins,delay)
+  mooove(name: string, delay: number = 250) {
+    return this.board.testMotor(name, delay)
   }
 
 

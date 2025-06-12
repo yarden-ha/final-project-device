@@ -40,6 +40,7 @@ export class MedicalSensor implements MedicalDevice {
                
         }
     }
+     
     tare(val) {
         if (this._sensor instanceof HX711) {
             return (this._sensor as HX711).tare(val);
@@ -52,7 +53,7 @@ export class MedicalSensor implements MedicalDevice {
             return (this._sensor as HX711).setScale(scale);
         } else {
             throw new Error("Set scale is only available for HX711 sensors.");
-        }
+        } 
     }
 
 }

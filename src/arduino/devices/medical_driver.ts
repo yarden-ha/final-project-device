@@ -27,13 +27,14 @@ export class MedicalDriver implements MedicalDevice {
 
         this.board.io.sysexCommand([MOTOR_DATA, SUBCMD_INIT, this.step.pin, this.dir.pin, this.fault.pin]);
         this.board.io.sysexResponse(MOTOR_DATA, (data: number[]) => {
-            const subcmd = data[0]; // First byte is the subcommand
+            const subcmd = unpackByte(data[0], data[1]); // First byte is the subcommand
             if (subcmd === MOVE_INIT) {
                 // Arduino sends back in the order delay, spins
-          const spins = (data[1] << 8) | data[2];
-            const delay = (data[3] << 8) | data[4];
+                const b0 = unpackByte(data[3], data[2]);
+                const b1 = unpackByte(data[4], data[5]); 
+                let delay = b1 + b0 ;
                 console.log(data);
-                console.log(`Received from Arduino - Delay: ${delay}, Spins: ${spins}`);
+                console.log(`Received from Arduino - Delay: ${delay},`);
             }
         })
 
@@ -42,29 +43,34 @@ export class MedicalDriver implements MedicalDevice {
         this.fault.on("data", (value) => {
             console.log(value)
         })
-        
+
     }
 
-    sendMoveCommand(spins: number, delay: number) {
-        spins = Math.min(spins, 0xFFFF);
+    sendMoveCommand(delay: number) {
+
         delay = Math.min(delay, 0xFFFF);
 
-        const spinsHigh = (spins >> 8) & 0xFF;
-        const spinsLow = spins & 0xFF;
-        const delayHigh = (delay >> 8) & 0xFF;
-        const delayLow = delay & 0xFF;
 
-        console.log(`Sending command to Arduino - Spins: ${spins}, Delay: ${delay}`);
-        console.log([MOVE_INIT, spinsHigh, spinsLow, delayHigh, delayLow]);
+        const delayLow7 = delay & 0x7F;
+        const delayHigh7 = (delay >> 7) & 0x7F;
+
+        console.log(`Sending command to Arduino - Delay: ${delay}`);
+        console.log([
+            MOTOR_DATA,
+            MOVE_INIT,
+            delayLow7,
+            delayHigh7
+        ]);
 
         this.board.io.sysexCommand([
             MOTOR_DATA,
             MOVE_INIT,
-            spinsHigh, spinsLow,
-            delayHigh, delayLow
+            delayLow7,
+            delayHigh7
         ]);
+
     }
- 
+
 
 }
 

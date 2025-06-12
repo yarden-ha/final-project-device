@@ -62,7 +62,9 @@ long hx711Value = 0;
 byte motorStepPin = 0;
 byte motorDirPin = 0;
 byte motorFltPin = 0;
-int motorDelay = 250;
+int motorDelay = 800;
+int maxSpeed = 100;
+int minSpeed = 500;
 bool isMotorAttached = false;
 bool isMotorRunning = false;
 /*==============================================================================
@@ -864,8 +866,7 @@ void sysexCallback(byte command, byte argc, byte *argv)
       }
       else if (subcommand == 0x02 && isHX711Attached)
       { // READ
-        if (scale.is_ready())
-        {
+    
           long value = hx711Value;
           byte sysexPayload[6];
           sysexPayload[0] = 0x02;
@@ -875,7 +876,6 @@ void sysexCallback(byte command, byte argc, byte *argv)
           sysexPayload[4] = (byte)(value >> 24);
           sysexPayload[5] = (value < 0) ? 0x01 : 0x00; // Sign
           Firmata.sendSysex(HX711_DATA, 6, sysexPayload);
-        }
       }
       else if (subcommand == 0x03 && isHX711Attached && argc >= 5)
       {
@@ -924,20 +924,22 @@ void sysexCallback(byte command, byte argc, byte *argv)
       }
       else if (subcommand == 0x02)
       {
-        int spins =         (argv[1] << 8) | argv[2]; // High, Low
-        int receivedDelay = (argv[3] << 8) | argv[4];
+        int receivedDelay = (argv[2] << 7) | argv[1]; // MSB = argv[2], LSB = argv[1]
 
-        motorDelay = receivedDelay;
+        if (receivedDelay >= maxSpeed && receivedDelay <= minSpeed)
+        {
+          motorDelay = receivedDelay;
+        }
         isMotorRunning = true;
         // Properly encode the values into 7-bit bytes for sending back
-        byte response[5];
-        response[0] = 0x02;                        // subcommand
-        response[1] = spins & 0x7F;                // low 7 bits
-        response[2] = (spins >> 8) & 0x7F;         // high 7 bits
-        response[3] = receivedDelay & 0x7F;        // low 7 bits
-        response[4] = (receivedDelay >> 8) & 0x7F; // high 7 bits
+        byte response[3];
+        response[0] = 0x02; // subcommand
 
-        Firmata.sendSysex(MOTOR_DATA, 5, response);
+        // Encode 16-bit value as two 7-bit bytes:
+        response[1] = (motorDelay >> 7) & 0x7F; // high 7 bits
+        response[2] = motorDelay & 0x7F;        // low 7 bits
+
+        Firmata.sendSysex(MOTOR_DATA, 3, response);
       }
       else if (subcommand == 0x03)
       {
@@ -1023,11 +1025,11 @@ void systemResetCallback()
 void setup()
 {
   /*==============================================================================
-   * CUSTOM STUFF FOR PROJECT 
+   * CUSTOM STUFF FOR PROJECT
    *============================================================================*/
 
   /*==============================================================================
-   * END CUSTOM STUFF FOR PROJECT 
+   * END CUSTOM STUFF FOR PROJECT
    *============================================================================*/
 
   Firmata.setFirmwareVersion(FIRMATA_FIRMWARE_MAJOR_VERSION, FIRMATA_FIRMWARE_MINOR_VERSION);
@@ -1061,30 +1063,31 @@ void setup()
  * LOOP()
  *============================================================================*/
 void loop()
-{   
+{
   byte pin, analogPin;
 
   /*==============================================================================
-   * CUSTOM STUFF FOR PROJECT 
+   * CUSTOM STUFF FOR PROJECT
    *============================================================================*/
-  if(isHX711Attached){
-    if(scale.is_ready()){
+  if (isHX711Attached)
+  {
+    if (scale.is_ready())
+    {
       hx711Value = scale.read(); // get average of 10 readings
       // send the value to the host
       // Firmata.sendSysex(HX711_DATA, 5, (byte *)&hx711Value);
     }
   }
-   if(isMotorAttached){
-      if(isMotorRunning){
-        spinMotor();
-      }
-    } 
+  if (isMotorAttached)
+  {
+    if (isMotorRunning)
+    {
+      spinMotor();
+    }
+  }
   /*==============================================================================
-   * END CUSTOM STUFF FOR PROJECT 
+   * END CUSTOM STUFF FOR PROJECT
    *============================================================================*/
-
-
-
 
   /* DIGITALREAD - as fast as possible, check for changes and output them to the
    * FTDI buffer using Serial.print()  */
