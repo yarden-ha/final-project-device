@@ -1,6 +1,17 @@
 {
     "devices": [
-           {
+        {
+            "name": "niggacoder",
+            "type": "encoder",
+            "pins": [
+                10,
+                11
+            ],
+            "deviceProps": {}
+        }
+    ],
+    "ignored": [
+        {
             "name": "force",
             "type": "sensor",
             "pins": [
@@ -13,9 +24,8 @@
                 "range": "0-50",
                 "samplingRate": "80"
             }
-        } 
-       ,
-       {
+        },
+        {
             "name": "motor",
             "type": "stepper",
             "pins": [
@@ -24,9 +34,6 @@
                 6
             ],
             "deviceProps": {}
-        }     
-         
-    ],
-    "ignored": [ 
-         ]
+        }
+    ]
 }

@@ -3,9 +3,10 @@ import { Board, Led } from "johnny-five"
 import { readFile } from 'fs/promises'
 import { MedicalDriver } from "./devices/medical_driver";
 import { MedicalSensor } from "./devices/medical_sensor";
+import { MedicalEncoder } from "./devices/medical_encoder";
 
 export type MedicalDevice = {}
-type DeviceType = 'stepper' | 'sensor'
+type DeviceType = 'stepper' | 'sensor' | 'encoder'
 
 type MedicalDeviceType = {
     type: DeviceType,
@@ -67,7 +68,21 @@ export class MedicalBoard extends EventEmitter {
                     this.boardDevices.set(deviceJson.name, new MedicalSensor(deviceJson.name, sensorType, deviceJson.pins, this.board));
                     // Add sensor initialization code here        
                     break;
+                case 'encoder':
+                    // Initialize sensor
+                    console.log(`Initializing encoder: ${deviceJson.name} on pin ${deviceJson.pins}`);
+                    const encoder = new MedicalEncoder({
+                        pinout: { a: deviceJson.pins[0], b: deviceJson.pins[1] },
+                        onLeft: () => console.log("Turned left"),
+                        onRight: () => console.log("Turned right"),
+                        onChange: (steps, dir) =>
+                            console.log(`Steps: ${steps}, Direction: ${dir}`),
+                    });
+                    this.boardDevices.set(deviceJson.name, encoder);
+                    (this.boardDevices.get(deviceJson.name) as MedicalEncoder)
 
+                    // Add sensor initialization code here        
+                    break;
                 default:
                     console.error("Device not supported!!!")
                     break
@@ -85,7 +100,7 @@ export class MedicalBoard extends EventEmitter {
 
     }
 
-    
+
 
     public readSensor(name: string) {
         if (!this.boardDevices.has(name)) {
@@ -96,13 +111,12 @@ export class MedicalBoard extends EventEmitter {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
                 const rounded = Math.floor(weight).toFixed(2)
                 let currentTimestamp = new Date()
-                
+
                 if (weight > 500 && currentTimestamp.getTime() - this.lastCommandSentTimeStamp.getTime() > 200) {
-                    console.log(` ${currentTimestamp.getTime()} - ${this.lastCommandSentTimeStamp.getTime()} = ${ currentTimestamp.getTime() - this.lastCommandSentTimeStamp.getTime()}`);
                     this.lastCommandSentTimeStamp = currentTimestamp
                     this.testMotor('motor', 500 - Math.floor(weight / 1000) * 50)
                 }
- 
+
                 this.emit(`${name}-data`, rounded)
             } catch (err) {
                 console.error("Read error:", err);
@@ -133,10 +147,12 @@ export class MedicalBoard extends EventEmitter {
         console.log(`Set scale for sensor: ${name} to ${scale}`);
 
     }
+
     testMotor(name: string, delay: number) {
         console.log(`Testing motor: ${name} with delay: ${delay}`);
 
         let medicalDriver = this.boardDevices.get(name) as MedicalDriver
+        // return medicalDriver ? medicalDriver.sendMoveCommand(delay) : { status: 404 }
         if (medicalDriver) {
             return medicalDriver.sendMoveCommand(delay);
         }
