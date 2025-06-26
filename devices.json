@@ -5,7 +5,8 @@
             "type": "encoder",
             "pins": [
                 10,
-                11
+                11,
+                12
             ],
             "deviceProps": {}
         }

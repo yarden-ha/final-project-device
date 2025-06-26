@@ -71,8 +71,19 @@ export class MedicalBoard extends EventEmitter {
                 case 'encoder':
                     // Initialize sensor
                     console.log(`Initializing encoder: ${deviceJson.name} on pin ${deviceJson.pins}`);
-                    const encoder = new MedicalEncoder({
-                        pinout: { a: deviceJson.pins[0], b: deviceJson.pins[1] },
+                    const [a, b, z] = deviceJson.pins
+                    const encoder = 
+                    // new Encoder(
+                    //     a,    // pinA
+                    //     b,    // pinB
+                    //     z,    // pinZ (optional)
+                    //     () => console.log("Left turn detected"),
+                    //     () => console.log("Right turn detected"),
+                    //     (count) => console.log("Count:", count),
+                    //     () => console.log("Full rotation detected")
+                    //  )
+                    new MedicalEncoder({
+                        pinout: { a, b, z },
                         onLeft: () => console.log("Turned left"),
                         onRight: () => console.log("Turned right"),
                         onChange: (steps, dir) =>
