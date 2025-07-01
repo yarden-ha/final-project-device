@@ -1,4 +1,4 @@
-import { Button, Pin } from "johnny-five";
+import { Board, Button, Pin } from "johnny-five";
 
 const READ_INTERVAL = 200; // ms
 const SAMPLE_WINDOW = 3;
@@ -11,6 +11,26 @@ interface MedicalEncoderOptions {
   onChange?: (stepCount: number, currentDir: Direction) => void;
   onFullRotation?: (rotationCount: number) => void;
 }
+
+
+const transitionTable = {
+  0b0001: 1, // 00 → 01
+  0b0010: -1, // 00 → 10
+  0b0011: 0, // 00 → 11 (invalid)
+
+  0b0100: 1, // 01 → 00
+  0b0111: -1, // 01 → 11
+  0b0110: 0, // 01 → 10 (invalid)
+
+  0b1000: -1, // 10 → 00
+  0b1011: 1, // 10 → 11
+  0b1010: 0, // 10 → 01 (invalid)
+
+  0b1101: -1, // 11 → 01
+  0b1110: 1, // 11 → 10
+  0b1100: 0, // 11 → 00 (invalid)
+};
+
 
 export class MedicalEncoder {
   private pinA: Pin;
@@ -42,12 +62,13 @@ export class MedicalEncoder {
   private ccw = 0
   lastATime: number;
   lastBTime: number;
+  lastEncoded: number;
 
-  constructor({ pinout, onLeft, onRight, onChange, onFullRotation }: MedicalEncoderOptions) {
+  constructor({ pinout, onLeft, onRight, onChange, onFullRotation }: MedicalEncoderOptions, board: Board) {
     this.pinA = new Pin(pinout.a);
     this.pinB = new Pin(pinout.b);
-    // this.pinA.mode = Pin.INPUT
-    // this.pinB.mode = Pin.INPUT
+    this.pinA.mode = Pin.INPUT
+    this.pinB.mode = Pin.INPUT
     this.onLeft = onLeft;
     this.onRight = onRight;
     this.onChange = onChange;
@@ -58,156 +79,60 @@ export class MedicalEncoder {
       this.pinZ.mode = Pin.INPUT
       this.startZMonitoring();
     }
-    this.pinA.read((errA: any, valueA: number) => {
-      this.stateA = valueA;
-      this.lastATime = Date.now();
-      this.handleChange();
-    });
-    this.pinB.read((errB: any, valueB: number) => {
-      this.stateB = valueB;
-      this.lastBTime = Date.now();
+
+
+
+    board.io.digitalRead(pinout.a, val => {
+      this.stateA = val;
       this.handleChange();
     });
 
+    board.io.digitalRead(pinout.b, val => {
+      this.stateB = val;
+      this.handleChange();
+    });
 
     this.pinZ?.on("data", (data) => {
       console.log(`Z: ${data}`);
     });
 
-    // Start periodic direction analysis
-    // setInterval(() => this.analyzeBufferedSteps(), READ_INTERVAL);
-  }
-  handleA() {
-    const now = Date.now();
-    if (now - this.lastChangeTime < READ_INTERVAL) return; // Ignore changes faster than 2ms
-    this.lastChangeTime = now;
-    let a = this.stateA;
-    let b = this.stateB;
-    if (a == this.lastA && b == this.lastB) return;
-    if (this.mUtEx === 0) {
-      this.mUtEx = 1;
-      if (a === b) {
-        this.stepCount++;
-        this.currentDir = "Clockwise";
-        this.onRight?.();
-      } else {
-        this.stepCount--;
-        this.currentDir = "Counterclockwise";
-        this.onLeft?.();
-      }
-      this.onChange?.(this.stepCount, this.currentDir);
-      this.lastA = a;
-      this.lastB = b;
-      this.mUtEx = 0;
-    }
   }
 
-  handleB() {
-    const now = Date.now();
-    if (now - this.lastChangeTime < READ_INTERVAL) return; // Ignore changes faster than 2ms
-    this.lastChangeTime = now;
-    let a = this.stateA;
-    let b = this.stateB;
-    if (a == this.lastA && b == this.lastB) return;
-    if (this.mUtEx === 0) {
-      this.mUtEx = 1;
-      if (a !== b) {
-        this.stepCount++;
-        this.currentDir = "Clockwise";
-        this.onRight?.();
-      } else {
-        this.stepCount--;
-        this.currentDir = "Counterclockwise";
-        this.onLeft?.();
-      }
-      this.onChange?.(this.stepCount, this.currentDir);
-      this.lastA = a;
-      this.lastB = b;
-      this.mUtEx = 0;
-    }
-  }
+
   private handleChange() {
-    const a = this.stateA;
-    const b = this.stateB;
-    const now = Date.now();
-    // Only process if state changed
-    if (a === this.lastA && b === this.lastB) return;
-    if (Math.abs(this.lastATime - this.lastBTime) > SAMPLE_WINDOW) return;
-    // Determine which pin changed
-    let direction: Direction = "";
+     console.log(`A:${this.stateA} B:${this.stateB}`);
+     
+    const encoded = (this.stateA << 1) | this.stateB;
+    const sum = (this.lastEncoded << 2) | encoded;
+    const dir = transitionTable[sum] ?? 0;
 
-    if (this.lastATime > this.lastBTime) {
-      // A changed last
-      if (a === b) {
-        this.stepCount++;
-        direction = "Clockwise";
-        this.onRight?.();
-      } else {
-        this.stepCount--;
-        direction = "Counterclockwise";
-        this.onLeft?.();
-      }
-    } else if (this.lastBTime > this.lastATime) {
-      // B changed last
-      if (a !== b) {
-        this.stepCount++;
-        direction = "Clockwise";
-        this.onRight?.();
-      } else {
-        this.stepCount--;
-        direction = "Counterclockwise";
-        this.onLeft?.();
-      }
-    } else {
-      // Times are equal, ambiguous, ignore
-      return;
+    if (dir === 1) {
+      this.cw++;
+      this.ccw = 0;
+    } else if (dir === -1) {
+      this.ccw++;
+      this.cw = 0;
     }
 
-    if (direction) {
-      this.currentDir = direction;
+    const threshold = 4;
+
+    if (this.cw >= threshold) {
+      this.currentDir = "Clockwise";
+      this.stepCount++;
+      this.onRight?.();
       this.onChange?.(this.stepCount, this.currentDir);
-    }
-
-    this.lastA = a;
-    this.lastB = b;
-
-  }
-
-  private analyzeBufferedSteps() {
-    if (this.history.length < 2) return;
-    let delta = 0;
-
-    for (let i = 1; i < this.history.length; i++) {
-      // console.log(this.history[i]);
-      let lastA = this.history[i - 1].a
-      let lastB = this.history[i - 1].b
-      let lastTime = this.history[i - 1].time
-      let { a, b, time } = this.history[i]
-      // const prev = (this.history[i - 1].a << 1) | this.history[i - 1].b;
-      // const curr = (this.history[i].a << 1) | this.history[i].b;
-      // const transition = (prev << 2) | curr;
-
-
-      // // Quadrature direction lookup table
-      // const directionMap = [0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0];
-      // const dir = directionMap[transition & 0x0f];
-
-      // // console.log(`Transition ${i - 1} → ${i}: ${prev} → ${curr} → ${dir}`);
-      // delta += dir;
-    }
-
-    if (delta !== 0) {
-      const direction = delta > 0 ? "Clockwise" : "Counterclockwise";
-      this.stepCount += Math.abs(delta); // count positive steps only
-
-      this.currentDir = direction;
-
-      if (direction === "Clockwise") this.onRight?.();
-      else this.onLeft?.();
-
+      this.cw = 0;
+    } else if (this.ccw >= threshold) {
+      this.currentDir = "Counterclockwise";
+      this.stepCount--;
+      this.onLeft?.();
       this.onChange?.(this.stepCount, this.currentDir);
+      this.ccw = 0;
     }
-    this.history = []; // Clear buffer after processing
+
+    this.lastEncoded = encoded;
+    this.lastEncoded = encoded;
+
   }
 
   private startZMonitoring() {
