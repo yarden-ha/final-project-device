@@ -54,6 +54,6 @@ export class MedicalSensor implements MedicalDevice {
         } else {
             throw new Error("Set scale is only available for HX711 sensors.");
         } 
-    }
+    } 
 
 }

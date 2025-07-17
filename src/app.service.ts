@@ -29,5 +29,9 @@ export class AppService {
     return this.board.testMotor(name, delay)
   }
 
-
+  saveRecording(){
+    console.log('sss');
+    
+    return this.board.saveRecording('niggacoder')
+  }
 }

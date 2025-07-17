@@ -1,5 +1,5 @@
 import { Board, Button, Pin } from "johnny-five";
-
+import { writeFile } from 'fs/promises'
 const READ_INTERVAL = 200; // ms
 const SAMPLE_WINDOW = 3;
 type Direction = "Clockwise" | "Counterclockwise" | "";
@@ -63,7 +63,7 @@ export class MedicalEncoder {
   lastATime: number;
   lastBTime: number;
   lastEncoded: number;
-
+  dataRecording: Map<string, { A: number, B: number }>
   constructor({ pinout, onLeft, onRight, onChange, onFullRotation }: MedicalEncoderOptions, board: Board) {
     this.pinA = new Pin(pinout.a);
     this.pinB = new Pin(pinout.b);
@@ -73,7 +73,7 @@ export class MedicalEncoder {
     this.onRight = onRight;
     this.onChange = onChange;
     this.onFullRotation = onFullRotation;
-
+    this.dataRecording = new Map<string, { A: number, B: number }>()
     if (pinout.z) {
       this.pinZ = new Pin(pinout.z);
       this.pinZ.mode = Pin.INPUT
@@ -100,8 +100,10 @@ export class MedicalEncoder {
 
 
   private handleChange() {
-     console.log(`A:${this.stateA} B:${this.stateB}`);
-     
+
+    this.lastChangeTime = new Date().getMilliseconds()
+    console.log(`A:${this.stateA} B:${this.stateB}`);
+    this.dataRecording.set(new Date().toISOString(), { A: this.stateA, B: this.stateB })
     const encoded = (this.stateA << 1) | this.stateB;
     const sum = (this.lastEncoded << 2) | encoded;
     const dir = transitionTable[sum] ?? 0;
@@ -109,7 +111,7 @@ export class MedicalEncoder {
     if (dir === 1) {
       this.cw++;
       this.ccw = 0;
-    } else if (dir === -1) {
+    } else if (dir === -1) { 
       this.ccw++;
       this.cw = 0;
     }
@@ -148,5 +150,12 @@ export class MedicalEncoder {
         this.lastZState = currentZ;
       });
     }, 1);
+  }
+
+
+  async saveRecording(){
+    console.log('saving')
+    let s = await writeFile('./encoder_recording.json',JSON.stringify(Array.from(this.dataRecording.entries())),'utf-8')
+    return s
   }
 }

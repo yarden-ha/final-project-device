@@ -27,4 +27,10 @@ export class AppController {
     return this.appService.mooove(name, delay);
   }
 
+  @Post('/record')
+  record(){
+    console.log('record controller');
+    
+    return this.appService.saveRecording()
+  }
 }

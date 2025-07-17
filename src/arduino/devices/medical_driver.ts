@@ -5,16 +5,16 @@ enum DIRECTION {
     CLOCK_WISE = 1,
     COUNTER_CLOCK_WISE = 2
 }
-
+ 
 const MOTOR_DATA = 0x1E
 const SUBCMD_INIT = 0x01;
-const MOVE_INIT = 0x02;
+const MOVE_INIT = 0x02; 
 function encodeTo7BitArray(value) {
     return [value & 0x7F, (value >> 7) & 0x7F];
-}
+} 
 export class MedicalDriver implements MedicalDevice {
     private step: Pin
-    private dir: Pin
+    private dir: Pin 
     private fault: Pin
     private board: Board;
 

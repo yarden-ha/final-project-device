@@ -21,6 +21,7 @@ export const unpackByte = (lsb, msb) => (lsb & 0x7F) | ((msb & 0x7F) << 7);
 
 
 export class MedicalBoard extends EventEmitter {
+
     private board: Board;
     private boardDevices: Map<string, MedicalDevice> = new Map();
     lastCommandSentTimeStamp: Date = new Date();
@@ -168,5 +169,12 @@ export class MedicalBoard extends EventEmitter {
             return medicalDriver.sendMoveCommand(delay);
         }
         else return { status: 404 }
+    }
+
+    saveRecording(name) {
+        
+        let encoder = this.boardDevices.get(name) as MedicalEncoder
+        console.log(encoder);
+        encoder.saveRecording()
     }
 }
