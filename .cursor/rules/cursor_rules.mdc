@@ -1,0 +1,99 @@
+
+- **Required Rule Structure:**
+  ```markdown
+  ---
+  description: Clear, one-line description of what the rule enforces
+  globs: path/to/files/*.ext, other/path/**/*
+  alwaysApply: boolean
+  ---
+
+  - **Main Points in Bold**
+    - Sub-points with details
+    - Examples and explanations
+  ```
+
+- **File References:**
+  - Use `[filename](mdc:path/to/file)` ([filename](mdc:filename)) to reference files
+  - Example: [prisma.mdc](mdc:.cursor/rules/prisma.mdc) for rule references
+  - Example: [schema.prisma](mdc:prisma/schema.prisma) for code references
+
+- **Code Examples:**
+  - Use language-specific code blocks
+  ```typescript
+  // ✅ DO: Show good examples
+  const goodExample = true;
+  
+  // ❌ DON'T: Show anti-patterns
+  const badExample = false;
+  ```
+
+- **Rule Content Guidelines:**
+  - Start with high-level overview
+  - Include specific, actionable requirements
+  - Show examples of correct implementation
+  - Reference existing code when possible
+  - Keep rules DRY by referencing other rules
+
+- **Rule Maintenance:**
+  - Update rules when new patterns emerge
+  - Add examples from actual codebase
+  - Remove outdated patterns
+  - Cross-reference related rules
+
+- **Best Practices:**
+  - Use bullet points for clarity
+  - Keep descriptions concise
+  - Include both DO and DON'T examples
+  - Reference actual code over theoretical examples
+  - Use consistent formatting across rules 
+
+- **Class Structure:**
+  - Encapsulate encoder logic in a dedicated class (e.g., `MedicalEncoder`).
+  - Accept pinout and callback options via constructor.
+  - Use private fields for hardware state and public fields for counters/status.
+
+- **Pin Initialization:**
+  - Use Johnny-Five's `Pin` class for each encoder channel (A, B, Z if available).
+  - Set pin mode to `Pin.INPUT` immediately after instantiation.
+
+- **Event Handling:**
+  - Use `board.io.digitalRead` for real-time pin state changes.
+  - Debounce or threshold logic should be implemented to avoid false triggers.
+  - Use a transition table for quadrature decoding.
+
+- **Callback Patterns:**
+  - Support `onLeft`, `onRight`, `onChange`, and `onFullRotation` callbacks.
+  - Callbacks should be optional and invoked only when relevant events occur.
+
+- **State Management:**
+  - Track last state and direction to determine valid transitions.
+  - Use counters for steps and full rotations.
+
+- **Testing:**
+  - Provide a way to simulate pin changes for unit testing (e.g., mock Pin class). 
+  - Use bullet points for clarity
+  - Keep descriptions concise
+  - Include both DO and DON'T examples
+  - Reference actual code over theoretical examples
+  - Use consistent formatting across rules 
+
+- **Pinout:**
+  - Channel A: Connect to digital input (e.g., pin 2)
+  - Channel B: Connect to digital input (e.g., pin 3)
+  - Channel Z (index): Connect to digital input (optional, e.g., pin 4)
+  - Vcc and GND: Connect to 5V and ground
+
+- **Signal Patterns:**
+  - Channels A and B output quadrature signals (90° phase difference)
+  - Channel Z outputs a single pulse per revolution (used for full rotation detection)
+
+- **Handling in Code:**
+  - Use digitalRead for A and B, and optionally Z
+  - Implement a transition table for quadrature decoding
+  - Use Z channel to increment full rotation counter and trigger `onFullRotation` callback
+
+- **Debouncing:**
+  - Implement software debouncing or thresholding to avoid false triggers due to noise
+
+- **Testing:**
+  - Simulate A/B/Z transitions in unit tests to verify correct step and rotation counting 

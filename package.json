@@ -18,7 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "buildFirmware": "cd arduino-device && arduino-cli compile --fqbn arduino:avr:uno && arduino-cli upload -p COM3 --fqbn arduino:avr:uno",
+    "buildFirmware": "cd arduino-device && arduino-cli compile --fqbn arduino:avr:uno && arduino-cli upload -p /dev/tty.usbmodem21301   --fqbn arduino:avr:uno",
     "rebuild": "npm run buildFirmware; npm run start:dev"
   },
   "dependencies": {
@@ -26,7 +26,9 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.2",
+    "@nestjs/serve-static": "^5.0.3",
     "@nestjs/websockets": "^11.1.2",
+    "@serialport/bindings": "^10.0.1",
     "@types/johnny-five": "^2.1.11",
     "events": "^3.3.0",
     "johnny-five": "^2.1.0",

@@ -4,6 +4,7 @@ import { readFile } from 'fs/promises'
 import { MedicalDriver } from "./devices/medical_driver";
 import { MedicalSensor } from "./devices/medical_sensor";
 import { MedicalEncoder } from "./devices/medical_encoder";
+import {writeFile} from 'fs/promises'
 
 export type MedicalDevice = {}
 type DeviceType = 'stepper' | 'sensor' | 'encoder'
@@ -24,7 +25,10 @@ export class MedicalBoard extends EventEmitter {
 
     private board: Board;
     private boardDevices: Map<string, MedicalDevice> = new Map();
+    pullhistory: { rpm: number, delay: number, weight: number }[] = []
     lastCommandSentTimeStamp: Date = new Date();
+    motorActive = false
+    sensorInterval: NodeJS.Timeout;
     constructor() {
         super();
         this.board = new Board()
@@ -69,7 +73,7 @@ export class MedicalBoard extends EventEmitter {
                     this.boardDevices.set(deviceJson.name, new MedicalSensor(deviceJson.name, sensorType, deviceJson.pins, this.board));
                     // Add sensor initialization code here        
                     break;
-                case 'encoder':
+                case 'encoder': 
                     // Initialize sensor
                     console.log(`Initializing encoder: ${deviceJson.name} on pin ${deviceJson.pins}`);
                     const [a, b, z] = deviceJson.pins
@@ -112,13 +116,29 @@ export class MedicalBoard extends EventEmitter {
 
     }
 
-
+    /**
+     * Maps a weight value (grams) to a delay value (microseconds) for the motor.
+     * @param weight - The measured weight in grams
+     * @param minWeight - The minimum weight (default 0g)
+     * @param maxWeight - The maximum weight (default 10000g)
+     * @param minDelay - The minimum delay (default 800us)
+     * @param maxDelay - The maximum delay (default 2000us)
+     */
+    private mapWeightToDelay(weight: number, minWeight = 0, maxWeight = 10000, minDelay = 800, maxDelay = 2000): number {
+        // Clamp weight to [minWeight, maxWeight]
+        weight = Math.max(minWeight, Math.min(weight, maxWeight));
+        // Reverse linear interpolation: higher weight -> lower delay
+        const delay = maxDelay - ((weight - minWeight) * (maxDelay - minDelay)) / (maxWeight - minWeight);
+        return Math.round(delay);
+    }
 
     public readSensor(name: string) {
         if (!this.boardDevices.has(name)) {
             return Promise.resolve(`Sensor ${name} not found`);
         }
-        setInterval(async () => {
+        this.motorActive = true;
+
+      this.sensorInterval =  setInterval(async () => {
             try {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
                 const rounded = Math.floor(weight).toFixed(2)
@@ -126,7 +146,9 @@ export class MedicalBoard extends EventEmitter {
 
                 if (weight > 500 && currentTimestamp.getTime() - this.lastCommandSentTimeStamp.getTime() > 200) {
                     this.lastCommandSentTimeStamp = currentTimestamp
-                    this.testMotor('motor', 500 - Math.floor(weight / 1000) * 50)
+                    const delay = this.mapWeightToDelay(weight);
+                    console.log(`Delay: ${delay} Weight: ${weight}`)
+                    this.testMotor('motor', delay ,weight)
                 }
 
                 this.emit(`${name}-data`, rounded)
@@ -136,13 +158,13 @@ export class MedicalBoard extends EventEmitter {
         }, 10)
     }
 
-    tare(name: string) {
+    tare(name: string, val?: number) {
         if (!this.boardDevices.has(name)) {
             return Promise.resolve(`Sensor ${name} not found`);
         }
         const sensor = this.boardDevices.get(name) as MedicalSensor;
         if (sensor instanceof MedicalSensor) {
-            sensor.tare(40);
+            sensor.tare(val);
             console.log(`Tared sensor: ${name}`);
         } else {
             console.error(`Sensor ${name} is not a HX711 sensor`);
@@ -160,12 +182,14 @@ export class MedicalBoard extends EventEmitter {
 
     }
 
-    testMotor(name: string, delay: number) {
+    testMotor(name: string, delay: number, weight: number) {
         console.log(`Testing motor: ${name} with delay: ${delay}`);
-
         let medicalDriver = this.boardDevices.get(name) as MedicalDriver
         // return medicalDriver ? medicalDriver.sendMoveCommand(delay) : { status: 404 }
-        if (medicalDriver) {
+        if (medicalDriver && this.motorActive) {
+            let rpm = medicalDriver.rpm
+            console.log(`rpm: ${rpm}`)
+            this.pullhistory.push({ rpm, delay, weight })
             return medicalDriver.sendMoveCommand(delay);
         }
         else return { status: 404 }
@@ -176,5 +200,29 @@ export class MedicalBoard extends EventEmitter {
         let encoder = this.boardDevices.get(name) as MedicalEncoder
         console.log(encoder);
         encoder.saveRecording()
+    }
+
+
+    public readRPM(name: string) {
+        if (!this.boardDevices.has(name)) {
+            return Promise.resolve(`Sensor ${name} not found`);
+        }
+        setInterval(async () => {
+            const rpm = (this.boardDevices.get(name) as MedicalDriver).rpm;
+            this.emit(`${name}-rpm`, rpm)
+        }, 10)
+    }
+
+    public async stopMotor(name: string) {
+        if (!this.boardDevices.has(name)) {
+            return Promise.resolve(`Sensor ${name} not found`);
+        }
+        this.motorActive = false;
+        this.sensorInterval && clearInterval(this.sensorInterval)
+        const medicalDriver = this.boardDevices.get(name) as MedicalDriver;
+        medicalDriver.sendStopCommand();
+        //save pullhistory to file
+        await writeFile('files/pullhistory.json', JSON.stringify(this.pullhistory),'utf8')
+        this.pullhistory = []
     }
 }

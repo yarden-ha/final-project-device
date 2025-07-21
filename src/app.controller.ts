@@ -10,9 +10,13 @@ export class AppController {
     return this.appService.getSensorVal(name);
   }
 
-  @Get('/tare/:name')
-  postSensorData(@Param('name') name: string,) {
-    return this.appService.tare(name);
+  @Post('/tare/:name')
+  postSensorData(@Param('name') name: string, @Body() body: { val?: number }) {
+    if (body.val) {
+      return this.appService.tare(name, body.val);
+    } else {
+      return this.appService.tare(name);
+    }
   }
 
   @Post('/setscale/:name')
@@ -28,9 +32,14 @@ export class AppController {
   }
 
   @Post('/record')
-  record(){
+  record(){ 
     console.log('record controller');
     
     return this.appService.saveRecording()
   }
+
+  @Post('/stop/:name')
+  stopMotor(@Param('name') name: string) {
+    return this.appService.stopMotor(name)
+  } 
 }

@@ -11,12 +11,12 @@ const SUBCMD_TARE = 0x04;
 const HX711_DATA = 0x1C
 
 export class HX711 {
-    private _dataPin: Pin;
+    private _dataPin: Pin; 
     private _clockPin: Pin;
 
     private _rawValue: number = 0;  // Last raw value read
-    private _offset = 40;            // Used for taring (zero offset)
-    private _scale = 44.56;         // Used to convert raw reading to meaningful units (e.g. grams or Newtons)
+    private _offset = 860;            // Used for taring (zero offset)
+    private _scale = 35//30.895454545454545;         // Used to convert raw reading to meaningful units (e.g. grams or Newtons)
     private board: Board;
     private readInterval: NodeJS.Timeout;
     private readSpeed = 100;
@@ -49,14 +49,19 @@ export class HX711 {
                     break;
             }
         })
-    }
+    } 
 
-    async tare(val: number): Promise<void> {
+    async tare(val?: number): Promise<void> {
 
         await this.waitForReady();
-        console.log("Taring HX711...");
-        this._offset = val
-        // this._offset = this._rawValue; // Store the current raw value as offset
+        if (val) {
+            console.log("Setting offset HX711..."); 
+            this._offset = val
+        } else {
+            console.log("Taring HX711..."); 
+            console.log(this._rawValue)
+            this._offset = this.calibrate(this._rawValue); // Store the current raw value as offset
+        }
     }
 
     setScale(scale: number): void {
@@ -66,7 +71,7 @@ export class HX711 {
     }
     calibrate(rawValue) {
         // this.setScale
-        // console.log(`Raw value: ${rawValue}`);
+        // console.log(`Raw value: ${rawValue} scale: ${this._scale} offset: ${this._offset}`);
         let calibratedVal = ((rawValue) / this._scale) - this._offset;
         if (calibratedVal < 0) calibratedVal = calibratedVal * -1
         // console.log(`Calibrated value: ${calibratedVal}`);

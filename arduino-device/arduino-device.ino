@@ -64,7 +64,7 @@ byte motorDirPin = 0;
 byte motorFltPin = 0;
 int motorDelay = 800;
 int maxSpeed = 100;
-int minSpeed = 500;
+int minSpeed = 2500;
 bool isMotorAttached = false;
 bool isMotorRunning = false;
 /*==============================================================================
