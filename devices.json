@@ -27,7 +27,7 @@
     ],
     "ignored": [
         {
-            "name": "niggacoder",
+            "name": "motion sensor",
             "type": "encoder",
             "pins": [
                 7,
