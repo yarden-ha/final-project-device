@@ -4,7 +4,7 @@ import { readFile } from 'fs/promises'
 import { MedicalDriver } from "./devices/medical_driver";
 import { MedicalSensor } from "./devices/medical_sensor";
 import { MedicalEncoder } from "./devices/medical_encoder";
-import {writeFile} from 'fs/promises'
+import { writeFile } from 'fs/promises'
 
 export type MedicalDevice = {}
 type DeviceType = 'stepper' | 'sensor' | 'encoder'
@@ -31,7 +31,7 @@ export class MedicalBoard extends EventEmitter {
     sensorInterval: NodeJS.Timeout;
     constructor() {
         super();
-        this.board = new Board()
+        this.board = new Board({ port: "/dev/arduino", repl: false })
         this.board.on("ready", this.onReady.bind(this))
     }
 
@@ -73,7 +73,7 @@ export class MedicalBoard extends EventEmitter {
                     this.boardDevices.set(deviceJson.name, new MedicalSensor(deviceJson.name, sensorType, deviceJson.pins, this.board));
                     // Add sensor initialization code here        
                     break;
-                case 'encoder': 
+                case 'encoder':
                     // Initialize sensor
                     console.log(`Initializing encoder: ${deviceJson.name} on pin ${deviceJson.pins}`);
                     const [a, b, z] = deviceJson.pins
@@ -138,7 +138,7 @@ export class MedicalBoard extends EventEmitter {
         }
         this.motorActive = true;
 
-      this.sensorInterval =  setInterval(async () => {
+        this.sensorInterval = setInterval(async () => {
             try {
                 const weight = await (this.boardDevices.get(name) as MedicalSensor).sensorValue();
                 const rounded = Math.floor(weight).toFixed(2)
@@ -148,7 +148,7 @@ export class MedicalBoard extends EventEmitter {
                     this.lastCommandSentTimeStamp = currentTimestamp
                     const delay = this.mapWeightToDelay(weight);
                     console.log(`Delay: ${delay} Weight: ${weight}`)
-                    this.testMotor('motor', delay ,weight)
+                    this.testMotor('motor', delay, weight)
                 }
 
                 this.emit(`${name}-data`, rounded)
@@ -196,7 +196,7 @@ export class MedicalBoard extends EventEmitter {
     }
 
     saveRecording(name) {
-        
+
         let encoder = this.boardDevices.get(name) as MedicalEncoder
         console.log(encoder);
         encoder.saveRecording()
@@ -215,14 +215,22 @@ export class MedicalBoard extends EventEmitter {
 
     public async stopMotor(name: string) {
         if (!this.boardDevices.has(name)) {
-            return Promise.resolve(`Sensor ${name} not found`);
+            return Promise.resolve(`motor ${name} not found`);
         }
         this.motorActive = false;
         this.sensorInterval && clearInterval(this.sensorInterval)
         const medicalDriver = this.boardDevices.get(name) as MedicalDriver;
         medicalDriver.sendStopCommand();
         //save pullhistory to file
-        await writeFile('files/pullhistory.json', JSON.stringify(this.pullhistory),'utf8')
+        await writeFile('files/pullhistory.json', JSON.stringify(this.pullhistory), 'utf8')
         this.pullhistory = []
+    }
+
+    public flipMotorDir(name: string) {
+        if (!this.boardDevices.has(name)) {
+            return Promise.resolve(`motor ${name} not found`);
+        }
+        let medicalDriver = this.boardDevices.get(name) as MedicalDriver
+        medicalDriver.flipDirection();
     }
 }

@@ -42,4 +42,8 @@ export class AppController {
   stopMotor(@Param('name') name: string) {
     return this.appService.stopMotor(name)
   } 
+    @Post('/flip/:name')
+  flipMotor(@Param('name') name: string) {
+    return this.appService.flipMotor(name)
+  } 
 }

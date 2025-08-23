@@ -37,13 +37,14 @@ export class AppService {
     return this.board.testMotor(name, delay, 0)
   }
 
-  saveRecording(){
-    console.log('sss');
-    
-    return this.board.saveRecording('niggacoder')
+  saveRecording() {
+    return this.board.saveRecording('encoder')
   }
 
   stopMotor(name: string) {
     return this.board.stopMotor(name)
+  }
+  flipMotor(name: string) {
+    return this.board.flipMotorDir(name)
   }
 }

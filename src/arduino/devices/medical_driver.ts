@@ -10,6 +10,7 @@ const MOTOR_DATA = 0x1E
 const SUBCMD_INIT = 0x01;
 const MOVE_INIT = 0x02;
 const STOP_INIT = 0x03;
+const DIR_FLIP = 0x04;
 
 function encodeTo7BitArray(value) {
     return [value & 0x7F, (value >> 7) & 0x7F];
@@ -23,11 +24,10 @@ export class MedicalDriver implements MedicalDevice {
     constructor(pins: { step: number, dir: number, fault: number }, stepsPerRev: number = 200, board: Board) {
         this.step = new Pin(pins.step)
         this.dir = new Pin(pins.dir)
-        this.dir.write(DIRECTION.COUNTER_CLOCK_WISE);
 
         if (pins.fault) this.fault = new Pin(pins.fault)
- 
-        this.board = board 
+
+        this.board = board
 
         this.board.io.sysexCommand([MOTOR_DATA, SUBCMD_INIT, this.step.pin, this.dir.pin, this.fault.pin]);
         this.board.io.sysexResponse(MOTOR_DATA, (data: number[]) => {
@@ -40,9 +40,13 @@ export class MedicalDriver implements MedicalDevice {
                 console.log(data);
                 console.log(`Received from Arduino - Delay: ${delay},`);
             }
+            else if (subcmd === DIR_FLIP) {
+                // Arduino sends back in the order delay, spins
+                console.log('changed direction')
+
+            }
         })
 
-        this.dir.write(DIRECTION.CLOCK_WISE);
 
         this.fault.on("data", (value) => {
             console.log(value)
@@ -82,6 +86,7 @@ export class MedicalDriver implements MedicalDevice {
         ]);
 
     }
+
     sendStopCommand() {
         this.board.io.sysexCommand([
             MOTOR_DATA,
@@ -89,5 +94,8 @@ export class MedicalDriver implements MedicalDevice {
         ]);
     }
 
+    flipDirection() {
+        this.board.io.sysexCommand([DIR_FLIP]);
+    }
 }
 

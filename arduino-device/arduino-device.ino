@@ -947,6 +947,24 @@ void sysexCallback(byte command, byte argc, byte *argv)
         isMotorRunning = false;
         // Properly encode the values into 7-bit bytes for sending back
       }
+      else if (subcommand == 0x04)
+      {
+        if (isMotorAttached)
+        {
+            // Read current state of direction pin
+            int currentState = digitalRead(motorDirPin);
+
+            // Flip it
+            digitalWrite(motorDirPin, currentState == HIGH ? LOW : HIGH);
+
+            // Optionally, send a response back with the new state
+            byte response[2];
+            response[0] = 0x04;              // subcommand
+            response[1] = digitalRead(motorDirPin) ? 1 : 0; // new direction state
+
+            Firmata.sendSysex(MOTOR_DATA, 2, response);
+        }
+      }
     }
     break;
     /*==============================================================================
