@@ -40,7 +40,7 @@ export class AppService {
   saveRecording(){
     console.log('sss');
     
-    return this.board.saveRecording('niggacoder')
+    return this.board.saveRecording('encoder')
   }
 
   stopMotor(name: string) {
