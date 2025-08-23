@@ -95,7 +95,7 @@ export class MedicalDriver implements MedicalDevice {
     }
 
     flipDirection() {
-        this.board.io.sysexCommand([DIR_FLIP]);
+        this.board.io.sysexCommand([MOTOR_DATA, DIR_FLIP]);
     }
 }
 
