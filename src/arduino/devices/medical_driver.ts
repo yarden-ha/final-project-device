@@ -56,7 +56,7 @@ export class MedicalDriver implements MedicalDevice {
         return rpm;
     }
 
-    x
+
     sendMoveCommand(delay: number) {
 
         delay = Math.min(delay, 0xFFFF);
