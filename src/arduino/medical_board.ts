@@ -31,8 +31,13 @@ export class MedicalBoard extends EventEmitter {
     sensorInterval: NodeJS.Timeout;
     constructor() {
         super();
+        let iswindows = process.platform === "win32";
+        if (!iswindows) {
         this.board = new Board({ port: "/dev/arduino", repl: false })
-        this.board.on("ready", this.onReady.bind(this))
+        } else {
+        this.board = new Board()
+        }
+        this.board.on("ready", this.onReady.bind(this));
     }
 
     private async createDevices() {
@@ -188,6 +193,7 @@ export class MedicalBoard extends EventEmitter {
         // return medicalDriver ? medicalDriver.sendMoveCommand(delay) : { status: 404 }
         if (medicalDriver && this.motorActive) {
             let rpm = medicalDriver.rpm
+            this.emit(`${name}-data`, rpm)
             console.log(`rpm: ${rpm}`)
             this.pullhistory.push({ rpm, delay, weight })
             return medicalDriver.sendMoveCommand(delay);

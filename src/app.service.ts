@@ -25,13 +25,7 @@ export class AppService {
     })
     return { status: 200 }
   }
-  getRPM(name: string) {
-    this.board.readRPM(name);
-    this.board.on(`${name}-data`, (data) => {
-      this.gateway.emitSensorData(name, data)
-    })
-    return { status: 200 }
-  }
+  
 
   mooove(name: string, delay: number = 250) {
     return this.board.testMotor(name, delay, 0)
